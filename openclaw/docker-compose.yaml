@@ -1,0 +1,36 @@
+services:
+  platform:
+    image: archestra/platform:latest
+    ports:
+      - "3000:3000"
+      - "9000:9000"
+    environment:
+      - ARCHESTRA_QUICKSTART=true
+      # If localhost doesn't work (e.g. OrbStack on macOS), uncomment and use 127.0.0.1:
+      # - ARCHESTRA_FRONTEND_URL=http://127.0.0.1:3000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - archestra-postgres-data:/var/lib/postgresql/data
+      - archestra-app-data:/app/data
+
+  openclaw-gateway:
+    image: alpine/openclaw:2026.2.2
+    ports:
+      - "18789:18789"
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-changeme}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    volumes:
+      - ./config:/home/node/.openclaw
+    init: true
+    restart: unless-stopped
+    depends_on:
+      - platform
+    command:
+      ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "18789"]
+
+volumes:
+  archestra-postgres-data:
+  archestra-app-data:

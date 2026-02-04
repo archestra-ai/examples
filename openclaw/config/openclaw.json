@@ -1,0 +1,43 @@
+{
+  "models": {
+    "providers": {
+      "archestra": {
+        "baseUrl": "http://platform:9000/v1/anthropic/<your-proxy-uuid>",
+        "apiKey": "${ANTHROPIC_API_KEY}",
+        "api": "anthropic-messages",
+        "models": [
+          {
+            "id": "claude-sonnet-4-5-20250929",
+            "name": "Claude Sonnet 4.5 (via Archestra)",
+            "reasoning": true,
+            "input": ["text", "image"],
+            "cost": {
+              "input": 3,
+              "output": 15,
+              "cacheRead": 0.3,
+              "cacheWrite": 3.75
+            },
+            "contextWindow": 200000,
+            "maxTokens": 16384
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "archestra/claude-sonnet-4-5-20250929"
+      }
+    }
+  },
+  "tools": {
+    "profile": "coding"
+  },
+  "gateway": {
+    "mode": "local",
+    "auth": {
+      "mode": "token"
+    }
+  }
+}

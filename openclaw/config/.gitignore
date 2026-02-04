@@ -1,0 +1,10 @@
+# Ignore OpenClaw runtime state — only track the config template
+agents/
+credentials/
+workspace/
+canvas/
+cron/
+devices/
+identity/
+update-check.json
+*.log
