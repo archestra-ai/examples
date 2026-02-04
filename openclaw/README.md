@@ -31,7 +31,7 @@ Open [http://localhost:3000](http://localhost:3000) and log in with the default 
 
 ### 3. Configure OpenClaw
 
-Edit `openclaw.json` in this directory and replace `<your-proxy-uuid>` with the UUID you copied in step 2.
+Edit `config/openclaw.json` and replace `<your-proxy-uuid>` with the UUID you copied in step 2.
 
 > **Note:** The `baseUrl` uses `http://platform:9000/...` (the Docker service name) because OpenClaw reaches Archestra over the Docker network, not `localhost`.
 

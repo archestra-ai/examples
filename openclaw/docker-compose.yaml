@@ -21,8 +21,7 @@ services:
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-changeme}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     volumes:
-      - ./openclaw.json:/home/node/.openclaw/openclaw.json
-      - openclaw-workspace:/home/node/.openclaw/workspace
+      - ./config:/home/node/.openclaw
     init: true
     restart: unless-stopped
     depends_on:
@@ -33,4 +32,3 @@ services:
 volumes:
   archestra-postgres-data:
   archestra-app-data:
-  openclaw-workspace:
