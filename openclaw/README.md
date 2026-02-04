@@ -23,11 +23,13 @@ docker compose up -d platform
 
 Open [http://localhost:3000](http://localhost:3000) and log in with the default credentials (`admin@example.com` / `password`).
 
+> **Tip:** If `localhost` doesn't connect (common with OrbStack on macOS), use `http://127.0.0.1:3000` instead and uncomment the `ARCHESTRA_FRONTEND_URL` line in `docker-compose.yaml`.
+
 ### 2. Configure the LLM Proxy
 
 1. Go to **Settings > LLM API Keys** and add your Anthropic API key
-2. Navigate to **LLM Proxy** in the sidebar and click into the "Default LLM Proxy"
-3. Copy the **proxy UUID** from the Anthropic connection URL (it looks like `http://localhost:9000/v1/anthropic/<uuid>`)
+2. Navigate to **LLM Proxies** in the sidebar and click the **Connect** button on the "Default LLM Proxy"
+3. Select the **Anthropic** tab and copy the **proxy UUID** from the connection URL (it looks like `http://localhost:9000/v1/anthropic/<uuid>`)
 
 ### 3. Configure OpenClaw
 
@@ -42,9 +44,17 @@ export ANTHROPIC_API_KEY="your-api-key-here"
 docker compose up -d
 ```
 
-This starts the OpenClaw gateway alongside Archestra. Access the OpenClaw UI at [http://localhost:18789](http://localhost:18789).
+This starts the OpenClaw gateway alongside Archestra. Access the OpenClaw dashboard using the tokenized URL (the default gateway token is `changeme`):
 
-All LLM traffic now flows through Archestra, where you can set tool permissions, cost limits, and monitor every request.
+[http://localhost:18789/?token=changeme](http://localhost:18789/?token=changeme)
+
+On the first connection, you'll need to **approve the device pairing**:
+
+```bash
+./approve-devices.sh
+```
+
+Once paired, you'll see "Health OK" in the dashboard. All LLM traffic now flows through Archestra, where you can set tool permissions, cost limits, and monitor every request.
 
 ### Stopping
 
