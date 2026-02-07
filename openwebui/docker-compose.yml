@@ -62,8 +62,8 @@ services:
       # Its OpenAI proxy is at /v1/openai, configured to forward to Ollama.
       # Using OpenAI route (not Ollama) because auth_type: "oauth" only
       # works on OpenAI-compatible connections in Open WebUI.
-      - OPENAI_API_BASE_URL=http://host.docker.internal:9000/v1/openai/576f314b-2ee7-4de6-b38c-ceb7b63c9ece
-      - OPENAI_API_KEY=<your-key-here>
+      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
 
       # ---------------------------------------------------------------
       # SSO: Keycloak OIDC
@@ -99,7 +99,11 @@ services:
       # ---------------------------------------------------------------
       # MCP Gateway: Archestra tool server
       # ---------------------------------------------------------------
-      - TOOL_SERVER_CONNECTIONS=[{"url":"http://host.docker.internal:9000/v1/mcp/e9557d04-89dc-4eae-94ed-6c883d7b6e9f","path":"","type":"mcp","auth_type":"bearer","key":"<key>","config":{},"info":{"id":"archestra","name":"Archestra MCP Gateway"}}]
+      # TOOL_SERVER_CONNECTIONS is configured in the DB via the admin API.
+      # With ENABLE_PERSISTENT_CONFIG=true, the DB config takes priority.
+      # Initial setup: call POST /api/v1/configs/oauth/clients/register?type=mcp
+      # to trigger DCR, then POST /api/v1/configs/tool_servers to save.
+      # See README.md for setup instructions.
 
       # ---------------------------------------------------------------
       # Disable Ollama (only use OpenAI via Archestra proxy)
@@ -116,7 +120,7 @@ services:
       # ---------------------------------------------------------------
       # Config persistence
       # ---------------------------------------------------------------
-      - ENABLE_PERSISTENT_CONFIG=false
+      - ENABLE_PERSISTENT_CONFIG=true
     volumes:
       - open-webui-data:/app/backend/data
     extra_hosts:

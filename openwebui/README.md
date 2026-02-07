@@ -24,11 +24,21 @@ This PoC demonstrates how to run [Open WebUI](https://github.com/open-webui/open
 
 ## Quick Start
 
+1. Copy the example environment file and fill in your values:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your LLM Proxy URL (including the profile UUID) and OpenAI API key.
+
+2. Start the services:
+
 ```bash
 docker compose up -d
 ```
 
-Wait ~60 seconds for Archestra to initialize, then:
+Wait ~60 seconds for Keycloak to initialize, then:
 
 | Service       | URL                      |
 |---------------|--------------------------|
