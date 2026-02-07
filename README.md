@@ -7,6 +7,7 @@ Example applications demonstrating how to integrate AI agents with [Archestra Pl
 - **[ai-sdk-express](./ai-sdk-express)** - Express.js app using Vercel AI SDK with Archestra security layer
 - **[mastra-ai](./mastra-ai)** - Mastra framework agent with GitHub integration and docker-compose setup
 - **[pydantic-ai](./pydantic-ai)** - Python agent using Pydantic AI demonstrating prompt injection protection
+- **[openwebui](./openwebui)** - Open WebUI with Archestra as LLM Proxy and MCP Gateway, including Keycloak SSO
 - **[openclaw](./openclaw)** - OpenClaw personal AI agent proxied through Archestra for security and observability
 - **[dummy_email_mcp_server](./dummy_email_mcp_server)** - Simple MCP server for testing email tool scenarios
 

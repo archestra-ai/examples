@@ -1,0 +1,133 @@
+# Archestra + Open WebUI PoC — OAuth Token Forwarding
+#
+# Architecture:
+#   Browser → Open WebUI (:8005) → Archestra LLM Proxy (host :9000) → Ollama (host :11434)
+#   Browser → Keycloak (:8085) for SSO login
+#
+# Archestra runs locally via `tilt up` (not in this compose).
+# Set ARCHESTRA_OPENAI_BASE_URL=http://localhost:11434/v1 in platform/.env
+#
+# Prerequisites:
+#   - Archestra running locally (`tilt up` in platform/)
+#   - Ollama running on host (`ollama pull llama3.2`)
+#
+# Usage:
+#   docker compose up -d
+#   Wait ~60s for Keycloak to initialize, then:
+#     - Open WebUI: http://localhost:8005
+#     - Keycloak admin: http://localhost:8085 (admin/admin)
+#
+# See README.md for full setup + auth_type configuration.
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: start-dev --import-realm
+    ports:
+      - "8085:8080"
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_HTTP_PORT=8080
+      - KC_HEALTH_ENABLED=true
+      # Frontend hostname (what the browser sees)
+      - KC_HOSTNAME=http://localhost:8085
+      - KC_HOSTNAME_STRICT=false
+      # Backchannel dynamic: allows server-to-server calls to use the
+      # request hostname (e.g., http://keycloak:8080) while keeping
+      # the issuer as the frontend hostname (http://localhost:8085)
+      - KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true
+    volumes:
+      - ./keycloak-realm.json:/opt/keycloak/data/import/openwebui-poc-realm.json:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/127.0.0.1/9000; echo -e 'GET /health/ready HTTP/1.1\r\nhost: localhost\r\nConnection: close\r\n\r\n' >&3; cat <&3 | grep -q '\"status\": \"UP\"'",
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 10
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    ports:
+      - "8005:8080"
+    environment:
+      # ---------------------------------------------------------------
+      # LLM Backend: Archestra's OpenAI proxy (pointed at Ollama)
+      # ---------------------------------------------------------------
+      # Archestra runs on the host via Tilt at port 9000.
+      # Its OpenAI proxy is at /v1/openai, configured to forward to Ollama.
+      # Using OpenAI route (not Ollama) because auth_type: "oauth" only
+      # works on OpenAI-compatible connections in Open WebUI.
+      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+
+      # ---------------------------------------------------------------
+      # SSO: Keycloak OIDC
+      # ---------------------------------------------------------------
+      # Fetch discovery from Docker-internal URL (server-to-server).
+      # KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true ensures token_endpoint
+      # in the discovery doc uses the backchannel hostname (keycloak:8080).
+      - OPENID_PROVIDER_URL=http://keycloak:8080/realms/openwebui-poc/.well-known/openid-configuration
+      - OPENID_REDIRECT_URI=http://localhost:8005/oauth/oidc/callback
+      - OAUTH_CLIENT_ID=open-webui
+      - OAUTH_CLIENT_SECRET=openwebui-poc-secret
+      - OAUTH_PROVIDER_NAME=Keycloak
+      - OAUTH_SCOPES=openid email profile
+      - ENABLE_OAUTH_SIGNUP=true
+      - OAUTH_MERGE_ACCOUNTS_BY_EMAIL=true
+
+      # Public URL (for OAuth redirect URI construction)
+      - WEBUI_URL=http://localhost:8005
+
+      # ---------------------------------------------------------------
+      # User info forwarding
+      # ---------------------------------------------------------------
+      - ENABLE_FORWARD_USER_INFO_HEADERS=true
+
+      # ---------------------------------------------------------------
+      # Auth
+      # ---------------------------------------------------------------
+      - WEBUI_AUTH=true
+      - WEBUI_SECRET_KEY=openwebui-poc-secret-key-at-least-32-chars
+      # Allow both password and SSO login for flexibility
+      - ENABLE_PASSWORD_AUTH=true
+
+      # ---------------------------------------------------------------
+      # MCP Gateway: Archestra tool server
+      # ---------------------------------------------------------------
+      # TOOL_SERVER_CONNECTIONS is configured in the DB via the admin API.
+      # With ENABLE_PERSISTENT_CONFIG=true, the DB config takes priority.
+      # Initial setup: call POST /api/v1/configs/oauth/clients/register?type=mcp
+      # to trigger DCR, then POST /api/v1/configs/tool_servers to save.
+      # See README.md for setup instructions.
+
+      # ---------------------------------------------------------------
+      # Disable Ollama (only use OpenAI via Archestra proxy)
+      # ---------------------------------------------------------------
+      - ENABLE_OLLAMA_API=false
+
+      # ---------------------------------------------------------------
+      # Disable RAG model downloads (speeds up startup)
+      # ---------------------------------------------------------------
+      - HF_HUB_OFFLINE=1
+      - RAG_EMBEDDING_MODEL_AUTO_UPDATE=false
+      - RAG_RERANKING_MODEL_AUTO_UPDATE=false
+
+      # ---------------------------------------------------------------
+      # Config persistence
+      # ---------------------------------------------------------------
+      - ENABLE_PERSISTENT_CONFIG=true
+    volumes:
+      - open-webui-data:/app/backend/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+
+volumes:
+  open-webui-data:
