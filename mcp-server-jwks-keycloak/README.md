@@ -119,6 +119,21 @@ curl -s -X POST http://localhost:3456/mcp \
 | `mcp-server/src/server.ts` | Express app, MCP transport, discovery endpoints |
 | `test.sh` | End-to-end test script (10 steps) |
 
+## Using with Archestra MCP Gateway
+
+This server works both standalone (as shown above) and behind [Archestra's MCP Gateway](https://archestra.ai/docs/platform-mcp-gateway) with end-to-end JWT propagation.
+
+When configured with [External IdP JWKS](https://archestra.ai/docs/mcp-authentication#external-idp-jwks), the Archestra gateway:
+
+1. Validates the caller's JWT against Keycloak's JWKS
+2. Matches the JWT's email claim to an Archestra user
+3. Enforces team-based access control
+4. **Propagates the original JWT** to this MCP server as an `Authorization: Bearer` header
+
+The MCP server then validates the same JWT independently — no Archestra-specific code needed. This enables end-to-end identity verification where both the gateway and the upstream server can prove who made each request.
+
+This pattern works with any OIDC-compliant identity provider (Okta, Auth0, Microsoft Entra ID, Keycloak, etc.).
+
 ## Key Design Decisions
 
 - **Stateless MCP transport**: new `McpServer` instance per request, no session tracking
