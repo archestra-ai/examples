@@ -1,0 +1,87 @@
+{
+  "realm": "mcp-demo",
+  "enabled": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "db-reader",
+        "description": "Can query the database via MCP tools"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "mcp-server",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": true,
+      "description": "MCP server audience target"
+    },
+    {
+      "clientId": "mcp-test-client",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "mcp-test-secret",
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "mcp-server-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "mcp-server",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "realm_roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "alice",
+      "email": "alice@example.com",
+      "firstName": "Alice",
+      "lastName": "Smith",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["db-reader", "default-roles-mcp-demo"]
+    },
+    {
+      "username": "bob",
+      "email": "bob@example.com",
+      "firstName": "Bob",
+      "lastName": "Jones",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["default-roles-mcp-demo"]
+    }
+  ]
+}

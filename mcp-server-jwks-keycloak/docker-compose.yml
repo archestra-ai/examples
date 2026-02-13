@@ -1,0 +1,37 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: http://localhost:8080
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HTTP_ENABLED: "true"
+    command: start-dev --import-realm --health-enabled=true
+    volumes:
+      - ./keycloak-realm.json:/opt/keycloak/data/import/realm.json
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: >-
+        bash -c 'exec 3<>/dev/tcp/localhost/8080 &&
+        echo -e "GET /realms/mcp-demo HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3 &&
+        grep -m1 "200 OK" <&3'
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+  mcp-server:
+    build: ./mcp-server
+    ports:
+      - "3456:3456"
+    environment:
+      JWKS_URL: http://keycloak:8080/realms/mcp-demo/protocol/openid-connect/certs
+      JWT_ISSUER: http://localhost:8080/realms/mcp-demo
+      JWT_AUDIENCE: mcp-server
+      MCP_SERVER_URL: http://localhost:3456
+      KEYCLOAK_ISSUER_URL: http://localhost:8080/realms/mcp-demo
+    depends_on:
+      keycloak:
+        condition: service_healthy
