@@ -1,0 +1,58 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: http://localhost:8080
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HTTP_ENABLED: "true"
+    command: start-dev --import-realm --health-enabled=true
+    volumes:
+      - ./keycloak-realm.json:/opt/keycloak/data/import/realm.json
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: >-
+        bash -c 'exec 3<>/dev/tcp/localhost/8080 &&
+        echo -e "GET /realms/mcp-demo HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3 &&
+        grep -m1 "200 OK" <&3'
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+  # Mock GitHub MCP server — validates GitHub-style tokens, returns mock tools
+  mock-github-mcp:
+    build: ./mock-github-mcp
+    ports:
+      - "3457:3457"
+    environment:
+      PORT: "3457"
+
+  # Token Exchange Gateway — validates Keycloak JWT, swaps for GitHub token, proxies to upstream
+  gateway:
+    build: ./gateway
+    ports:
+      - "3456:3456"
+    environment:
+      PORT: "3456"
+      JWKS_URL: http://keycloak:8080/realms/mcp-demo/protocol/openid-connect/certs
+      JWT_ISSUER: http://localhost:8080/realms/mcp-demo
+      JWT_AUDIENCE: mcp-server
+      KEYCLOAK_ISSUER_URL: http://localhost:8080/realms/mcp-demo
+      GATEWAY_URL: http://localhost:3456
+      # Upstream MCP server to proxy to
+      UPSTREAM_MCP_URL: http://mock-github-mcp:3457/mcp
+      # Token map: Keycloak email -> GitHub token (in production, this would
+      # come from Keycloak token exchange, a vault, or Archestra's credential store)
+      TOKEN_MAP: |
+        {
+          "alice@example.com": "ghp_alice_github_token_mock_abc123",
+          "bob@example.com": "ghp_bob_github_token_mock_def456"
+        }
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      mock-github-mcp:
+        condition: service_started
