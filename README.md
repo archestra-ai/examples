@@ -10,6 +10,7 @@ Example applications demonstrating how to integrate AI agents with [Archestra Pl
 - **[openwebui](./openwebui)** - Open WebUI with Archestra as LLM Proxy and MCP Gateway, including Keycloak SSO
 - **[openclaw](./openclaw)** - OpenClaw personal AI agent proxied through Archestra for security and observability
 - **[dummy_email_mcp_server](./dummy_email_mcp_server)** - Simple MCP server for testing email tool scenarios
+- **[mcp-server-id-jag](./mcp-server-id-jag)** - MCP server whose auth server accepts ID-JAG assertions and mints bearer access tokens
 
 ## Documentation
 
