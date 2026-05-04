@@ -30,12 +30,20 @@ When creating the OAuth client, select the LLM proxy it can access and map at le
    MODEL=openai:gpt-4o-mini
    ```
 
-3. Install dependencies and run:
+3. Install dependencies and run the CLI:
 
    ```sh
    npm install
    npm start
    ```
+
+   Or start the browser demo:
+
+   ```sh
+   npm run dev
+   ```
+
+   Then open <http://localhost:5175>.
 
 ## How it works
 
