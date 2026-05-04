@@ -10,6 +10,12 @@ type TokenResponse = {
   scope?: string;
 };
 
+type OAuthServerMetadata = {
+  authorization_endpoint: string;
+  token_endpoint: string;
+  registration_endpoint: string;
+};
+
 type Session = {
   state: string;
   codeVerifier: string;
@@ -28,6 +34,7 @@ const model = process.env.MODEL ?? "openai:gpt-4o-mini";
 const redirectUri = `${appBaseUrl}/oauth/callback`;
 
 let oauthClientId = process.env.OAUTH_CLIENT_ID;
+let oauthMetadata: OAuthServerMetadata | undefined;
 const sessions = new Map<string, Session>();
 
 const app = express();
@@ -57,6 +64,7 @@ app.get("/", async (request, response) => {
 });
 
 app.get("/login", async (_request, response) => {
+  oauthMetadata ??= await discoverOAuthServerMetadata();
   oauthClientId ??= await registerPublicOAuthClient();
   const state = randomBase64Url(24);
   const codeVerifier = randomBase64Url(48);
@@ -66,7 +74,7 @@ app.get("/login", async (_request, response) => {
   const sessionId = randomBase64Url(24);
   sessions.set(sessionId, { state, codeVerifier });
 
-  const authorizeUrl = new URL("/api/auth/oauth2/authorize", archestraBaseUrl);
+  const authorizeUrl = new URL(oauthMetadata.authorization_endpoint);
   authorizeUrl.searchParams.set("response_type", "code");
   authorizeUrl.searchParams.set("client_id", oauthClientId);
   authorizeUrl.searchParams.set("redirect_uri", redirectUri);
@@ -142,8 +150,8 @@ app.listen(port, () => {
 });
 
 async function registerPublicOAuthClient() {
-  const registerUrl = new URL("/api/auth/oauth2/register", archestraBaseUrl);
-  const response = await fetch(registerUrl, {
+  oauthMetadata ??= await discoverOAuthServerMetadata();
+  const response = await fetch(oauthMetadata.registration_endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -167,7 +175,7 @@ async function exchangeAuthorizationCode(params: {
   codeVerifier: string;
   clientId: string;
 }): Promise<TokenResponse> {
-  const tokenUrl = new URL("/api/auth/oauth2/token", archestraBaseUrl);
+  oauthMetadata ??= await discoverOAuthServerMetadata();
   const body = new URLSearchParams({
     grant_type: "authorization_code",
     client_id: params.clientId,
@@ -175,7 +183,7 @@ async function exchangeAuthorizationCode(params: {
     code: params.code,
     code_verifier: params.codeVerifier,
   });
-  const response = await fetch(tokenUrl, {
+  const response = await fetch(oauthMetadata.token_endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
@@ -185,6 +193,26 @@ async function exchangeAuthorizationCode(params: {
     throw new Error(`Token exchange failed: ${JSON.stringify(token)}`);
   }
   return token;
+}
+
+async function discoverOAuthServerMetadata(): Promise<OAuthServerMetadata> {
+  const metadataUrl = new URL(
+    "/.well-known/oauth-authorization-server",
+    archestraBaseUrl,
+  );
+  const response = await fetch(metadataUrl);
+  const metadata = (await response.json()) as OAuthServerMetadata;
+  if (
+    !response.ok ||
+    !metadata.authorization_endpoint ||
+    !metadata.token_endpoint ||
+    !metadata.registration_endpoint
+  ) {
+    throw new Error(
+      `OAuth metadata discovery failed: ${JSON.stringify(metadata)}`,
+    );
+  }
+  return metadata;
 }
 
 async function callModelRouter(params: {
