@@ -1,0 +1,21 @@
+{
+  "name": "@example/model-router-client-credentials",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "start": "tsx src/index.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "16.4.5",
+    "express": "5.2.0"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.0",
+    "@types/node": "20.17.24",
+    "tsx": "4.20.6",
+    "typescript": "5.8.3"
+  }
+}
