@@ -11,6 +11,7 @@ Example applications demonstrating how to integrate AI agents with [Archestra Pl
 - **[openclaw](./openclaw)** - OpenClaw personal AI agent proxied through Archestra for security and observability
 - **[model-router-user-oauth](./model-router-user-oauth)** - Public OAuth app that calls the OpenAI-compatible Model Router as the signed-in user
 - **[model-router-client-credentials](./model-router-client-credentials)** - Service-to-service OAuth client credentials app for the OpenAI-compatible Model Router
+- **[azure-openai-keyless](./azure-openai-keyless)** - Azure OpenAI call using Microsoft Entra ID instead of an API key
 - **[dummy_email_mcp_server](./dummy_email_mcp_server)** - Simple MCP server for testing email tool scenarios
 
 ## Documentation
