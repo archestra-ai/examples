@@ -5,16 +5,21 @@ import OpenAI from "openai";
 const baseURL = requiredEnv("AZURE_OPENAI_BASE_URL");
 const model = process.env.AZURE_OPENAI_MODEL ?? getDeploymentName(baseURL);
 const apiVersion = process.env.AZURE_OPENAI_API_VERSION ?? "2024-02-01";
+const tokenScope = isOpenAiV1BaseUrl(baseURL)
+  ? "https://ai.azure.com/.default"
+  : "https://cognitiveservices.azure.com/.default";
 
 const tokenProvider = getBearerTokenProvider(
   new DefaultAzureCredential(),
-  "https://cognitiveservices.azure.com/.default",
+  tokenScope,
 );
 
 const client = new OpenAI({
   apiKey: tokenProvider,
   baseURL,
-  defaultQuery: { "api-version": apiVersion },
+  defaultQuery: isOpenAiV1BaseUrl(baseURL)
+    ? undefined
+    : { "api-version": apiVersion },
 });
 
 const response = await client.chat.completions.create({
@@ -43,4 +48,9 @@ function getDeploymentName(urlValue) {
     );
   }
   return parts[deploymentIndex + 1];
+}
+
+function isOpenAiV1BaseUrl(urlValue) {
+  const url = new URL(urlValue);
+  return /\/openai\/v1\/?$/.test(url.pathname);
 }

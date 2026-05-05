@@ -24,6 +24,13 @@ This example calls Azure OpenAI with Microsoft Entra ID instead of an API key. I
    AZURE_OPENAI_MODEL=<deployment-name>
    ```
 
+   For the Foundry v1 endpoint, use:
+
+   ```sh
+   AZURE_OPENAI_BASE_URL=https://<resource-name>.services.ai.azure.com/openai/v1
+   AZURE_OPENAI_MODEL=<deployment-name>
+   ```
+
 3. Install dependencies and run:
 
    ```sh
@@ -43,4 +50,11 @@ ARCHESTRA_AZURE_OPENAI_API_VERSION=2024-02-01
 ARCHESTRA_AZURE_OPENAI_ENTRA_ID_ENABLED=true
 ```
 
-Archestra uses the Azure OpenAI token scope `https://cognitiveservices.azure.com/.default`.
+For Foundry v1, use:
+
+```sh
+ARCHESTRA_AZURE_OPENAI_BASE_URL=https://<resource-name>.services.ai.azure.com/openai/v1
+ARCHESTRA_AZURE_OPENAI_ENTRA_ID_ENABLED=true
+```
+
+Deployment URLs use the token scope `https://cognitiveservices.azure.com/.default`. Foundry v1 URLs use `https://ai.azure.com/.default`.
