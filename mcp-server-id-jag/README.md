@@ -50,7 +50,7 @@ npm run build
 npm start
 ```
 
-Create an Archestra identity provider that uses:
+Create an Archestra identity provider for the local ID-JAG issuer:
 
 | Field | Value |
 | --- | --- |
@@ -77,7 +77,7 @@ Configure the MCP server to use enterprise-managed ID-JAG credentials with:
 | Token injection mode | Authorization Bearer |
 
 Assign the discovered `whoami` tool to an MCP Gateway profile with
-enterprise-managed credential resolution. Then mint a demo ID-JAG:
+enterprise-managed credential resolution. Then mint an ID-JAG assertion:
 
 ```sh
 ASSERTION=$(curl -s http://127.0.0.1:3458/demo-idp/mint \
@@ -120,8 +120,8 @@ chmod +x test.sh
 
 ## Production Notes
 
-In production, replace the demo identity provider with your enterprise identity
-provider and enforce the same checks this example performs:
+In production, replace the local ID-JAG issuer with your enterprise issuer and
+enforce the same checks this example performs:
 
 - assertion issuer and signature
 - token endpoint client authentication
