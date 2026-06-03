@@ -1,0 +1,12 @@
+{
+  "name": "copilot-cli-llm-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "node setup.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
