@@ -1,23 +1,25 @@
 # MCP Gateway Entra On-Behalf-Of Example
 
-This example demonstrates the Entra ID On-Behalf-Of (OBO) flow for an MCP gateway.
+This example demonstrates the Entra ID On-Behalf-Of (OBO) flow with Archestra's
+MCP Gateway.
 
-The gateway receives a user access token, exchanges it at Entra for a downstream
+Archestra receives a user access token, exchanges it at Entra for a downstream
 MCP API access token, and calls the upstream MCP server with:
 
 ```http
 Authorization: Bearer <downstream-mcp-access-token>
 ```
 
-It is intentionally small: one Node process exposes both a demo gateway endpoint
-and a demo upstream MCP endpoint so you can see the exact token handoff.
+It is intentionally small: one Node process exposes a demo issuer, token
+endpoint, and protected upstream MCP endpoint. Archestra is the MCP gateway in
+the real flow.
 
 ## Architecture
 
 ```mermaid
 sequenceDiagram
   participant Client as Client / MCP host
-  participant Gateway as Demo gateway<br/>/gateway/mcp
+  participant Gateway as Archestra MCP Gateway<br/>/v1/mcp/:profileId
   participant Entra as Microsoft Entra ID
   participant MCP as Upstream MCP<br/>/upstream/mcp
 
@@ -29,7 +31,7 @@ sequenceDiagram
   MCP-->>Client: MCP tool result
 ```
 
-## Run Locally
+## Run the Local Server Smoke Test
 
 The default mode is self-contained. It starts a local demo issuer that mimics the
 parts of Entra needed for OBO:
@@ -38,7 +40,9 @@ parts of Entra needed for OBO:
 - a gateway access-token mint endpoint
 - an OBO token endpoint
 
-This keeps the example runnable without creating cloud app registrations.
+This keeps the server runnable without creating cloud app registrations. The
+standalone smoke test uses the included `/gateway/mcp` harness so the token
+handoff can be tested without an Archestra instance.
 
 ```sh
 chmod +x test.sh
@@ -143,7 +147,7 @@ curl -s http://localhost:3456/gateway/mcp \
 
 ## Using the Same Pattern in Archestra
 
-In Archestra, the platform plays the gateway role:
+In Archestra, the platform is the gateway:
 
 1. Configure an Entra identity provider.
 2. Configure enterprise-managed credentials with:
@@ -155,6 +159,14 @@ In Archestra, the platform plays the gateway role:
 3. Configure the MCP server to receive a bearer token.
 4. Assign the tool credential mode as enterprise-managed.
 
+MCP clients call Archestra's MCP Gateway, not the example's `/gateway/mcp`
+harness:
+
+```http
+POST /v1/mcp/:profileId
+Authorization: Bearer <user-access-token-for-archestra-gateway>
+```
+
 The upstream MCP server should validate the bearer token exactly like
 `/upstream/mcp` does in this example: verify the Entra issuer, audience, expiry,
 and any scopes or app roles your tool requires.
@@ -163,7 +175,7 @@ and any scopes or app roles your tool requires.
 
 | File | Description |
 | --- | --- |
-| `src/server.ts` | Demo gateway, Entra OBO exchange, and upstream MCP server |
+| `src/server.ts` | Demo issuer, Entra OBO-compatible token endpoint, standalone harness, and upstream MCP server |
 | `.env.example` | Required Entra values |
 | `src/server.test.ts` | Local end-to-end tests for the OBO handoff |
 | `test.sh` | Runs install, typecheck, and local end-to-end tests |

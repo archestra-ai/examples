@@ -1,6 +1,7 @@
 # MCP Server ID-JAG Example
 
-This example demonstrates an MCP server that supports the ID-JAG pattern.
+This example demonstrates an MCP server that supports the ID-JAG pattern with
+Archestra's MCP Gateway.
 
 The server exposes:
 
@@ -17,7 +18,7 @@ endpoint receives a server-specific access token minted from that assertion.
 
 ```mermaid
 sequenceDiagram
-  participant Gateway as Gateway / agent host
+  participant Gateway as Archestra MCP Gateway<br/>/v1/mcp/:profileId
   participant Token as MCP server token endpoint<br/>/token
   participant MCP as MCP endpoint<br/>/mcp
 
@@ -41,6 +42,18 @@ The tests prove:
 2. `/token` exchanges that assertion for an MCP-server access token
 3. `/mcp` accepts the minted MCP access token
 4. `/mcp` rejects the original ID-JAG assertion as a bearer token
+
+When configured in Archestra, MCP clients call Archestra's MCP Gateway with the
+ID-JAG assertion:
+
+```http
+POST /v1/mcp/:profileId
+Authorization: Bearer <id-jag-assertion>
+```
+
+Archestra exchanges the assertion at the MCP server's protected-resource token
+endpoint and then calls `/mcp` with `Authorization: Bearer
+<mcp-server-access-token>`.
 
 ## Manual Flow
 
