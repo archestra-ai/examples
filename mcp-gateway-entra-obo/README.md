@@ -10,9 +10,9 @@ MCP API access token, and calls the upstream MCP server with:
 Authorization: Bearer <downstream-mcp-access-token>
 ```
 
-It is intentionally small: one Node process exposes a demo issuer, token
-endpoint, and protected upstream MCP endpoint. Archestra is the MCP gateway in
-the real flow.
+It is intentionally small: one Node process exposes a demo issuer, an
+OBO-compatible token endpoint, and a protected upstream MCP endpoint. Archestra
+is the MCP gateway.
 
 ## Architecture
 
@@ -31,7 +31,7 @@ sequenceDiagram
   MCP-->>Client: MCP tool result
 ```
 
-## Run the Local Server Smoke Test
+## Run with Archestra
 
 The default mode is self-contained. It starts a local demo issuer that mimics the
 parts of Entra needed for OBO:
@@ -40,40 +40,64 @@ parts of Entra needed for OBO:
 - a gateway access-token mint endpoint
 - an OBO token endpoint
 
-This keeps the server runnable without creating cloud app registrations. The
-standalone smoke test uses the included `/gateway/mcp` harness so the token
-handoff can be tested without an Archestra instance.
-
-```sh
-chmod +x test.sh
-./test.sh
-```
-
-The test proves:
-
-1. the gateway receives a bearer token issued for the gateway audience
-2. the gateway performs an OBO-style token exchange
-3. the upstream MCP endpoint receives a different bearer token issued for the
-   downstream MCP audience
-4. the upstream MCP endpoint rejects the original gateway token
-
-You can also run it manually:
+This keeps the example runnable without creating cloud app registrations. Start
+the local MCP server and demo issuer:
 
 ```sh
 npm install
 npm run start
+```
 
+Create an Archestra identity provider that uses:
+
+| Field | Value |
+| --- | --- |
+| Issuer | `http://localhost:3456/demo-entra` |
+| OIDC client ID | `api://demo-gateway` |
+| JWKS endpoint | `http://localhost:3456/demo-entra/jwks` |
+| Enterprise-managed exchange strategy | Entra OBO |
+| Enterprise-managed client ID | `demo-gateway-client` |
+| Enterprise-managed client secret | `demo-gateway-secret` |
+| Enterprise-managed token endpoint | `http://localhost:3456/demo-entra/token` |
+| Subject token type | access token |
+
+Create a remote MCP server in Archestra that points to:
+
+```text
+http://localhost:3456/upstream/mcp
+```
+
+Configure the MCP server to use enterprise-managed bearer-token credentials with:
+
+| Field | Value |
+| --- | --- |
+| Resource identifier | `api://demo-upstream-mcp` |
+| Scope | `api://demo-upstream-mcp/MCP.Access` |
+| Token injection mode | Authorization Bearer |
+
+Assign the discovered `debug-auth-token` tool to an MCP Gateway profile with
+enterprise-managed credential resolution. Then mint a demo gateway access token:
+
+```sh
 ASSERTION_TOKEN=$(curl -s http://127.0.0.1:3456/demo-entra/mint-gateway-token \
   -H "Content-Type: application/json" \
-  -d '{"username":"demo@example.com"}' | jq -r .access_token)
+  -d '{"sub":"admin@example.com","username":"admin@example.com"}' \
+  | jq -r .access_token)
+```
 
-curl -s http://127.0.0.1:3456/gateway/mcp \
+Call Archestra's MCP Gateway with that token:
+
+```sh
+curl -s http://localhost:9000/v1/mcp/<profile-id> \
   -H "Authorization: Bearer $ASSERTION_TOKEN" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"debug-auth-token","arguments":{}}}' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"<server-name>__debug-auth-token","arguments":{}}}' \
   | jq .
 ```
+
+The tool response shows the upstream MCP server received a downstream bearer
+token issued for `api://demo-upstream-mcp`, not the original gateway token.
 
 ## Real Entra Setup
 
@@ -127,22 +151,22 @@ Fill in:
 | `MCP_AUDIENCE` | Audience expected by the upstream MCP server |
 | `LOCAL_DEMO_MODE=false` | Use real Entra endpoints instead of the local demo issuer |
 
-Start the server:
+Start the local MCP server:
 
 ```sh
 npm install
 npm run start
 ```
 
-Then obtain a user access token for the gateway API using your normal client app
-or Azure CLI, and call the gateway:
+Then obtain a user access token for the Archestra gateway API using your normal
+client app or Azure CLI, and call Archestra's MCP Gateway:
 
 ```sh
-curl -s http://localhost:3456/gateway/mcp \
+curl -s http://localhost:9000/v1/mcp/<profile-id> \
   -H "Authorization: Bearer $ASSERTION_TOKEN" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"debug-auth-token","arguments":{}}}'
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"<server-name>__debug-auth-token","arguments":{}}}'
 ```
 
 ## Using the Same Pattern in Archestra
@@ -159,8 +183,7 @@ In Archestra, the platform is the gateway:
 3. Configure the MCP server to receive a bearer token.
 4. Assign the tool credential mode as enterprise-managed.
 
-MCP clients call Archestra's MCP Gateway, not the example's `/gateway/mcp`
-harness:
+MCP clients call Archestra's MCP Gateway:
 
 ```http
 POST /v1/mcp/:profileId
@@ -175,7 +198,7 @@ and any scopes or app roles your tool requires.
 
 | File | Description |
 | --- | --- |
-| `src/server.ts` | Demo issuer, Entra OBO-compatible token endpoint, standalone harness, and upstream MCP server |
+| `src/server.ts` | Demo issuer, Entra OBO-compatible token endpoint, and upstream MCP server |
 | `.env.example` | Required Entra values |
-| `src/server.test.ts` | Local end-to-end tests for the OBO handoff |
-| `test.sh` | Runs install, typecheck, and local end-to-end tests |
+| `src/server.test.ts` | Local tests for the OBO token handoff |
+| `test.sh` | Runs install, typecheck, and tests |

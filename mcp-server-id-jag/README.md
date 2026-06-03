@@ -29,22 +29,53 @@ sequenceDiagram
   MCP-->>Gateway: MCP tool result
 ```
 
-## Run Locally
+## Run with Archestra
+
+Start the local MCP server:
 
 ```sh
-chmod +x test.sh
-./test.sh
+npm install
+npm run build
+npm start
 ```
 
-The tests prove:
+Create an Archestra identity provider that uses:
 
-1. a demo identity provider mints an ID-JAG assertion
-2. `/token` exchanges that assertion for an MCP-server access token
-3. `/mcp` accepts the minted MCP access token
-4. `/mcp` rejects the original ID-JAG assertion as a bearer token
+| Field | Value |
+| --- | --- |
+| Issuer | `http://localhost:3458/demo-idp` |
+| OIDC client ID | `id-jag-gateway-client` |
+| JWKS endpoint | `http://localhost:3458/demo-idp/jwks` |
+| Enterprise-managed client ID | `id-jag-resource-client` |
+| Enterprise-managed client secret | `id-jag-resource-secret` |
+| Enterprise-managed token endpoint | `http://localhost:3458/token` |
 
-When configured in Archestra, MCP clients call Archestra's MCP Gateway with the
-ID-JAG assertion:
+Create a remote MCP server in Archestra that points to:
+
+```text
+http://localhost:3458/mcp
+```
+
+Configure the MCP server to use enterprise-managed ID-JAG credentials with:
+
+| Field | Value |
+| --- | --- |
+| Requested credential type | ID-JAG |
+| Resource type | OAuth protected resource |
+| Resource identifier | `http://localhost:3458/mcp` |
+| Token injection mode | Authorization Bearer |
+
+Assign the discovered `whoami` tool to an MCP Gateway profile with
+enterprise-managed credential resolution. Then mint a demo ID-JAG:
+
+```sh
+ASSERTION=$(curl -s http://127.0.0.1:3458/demo-idp/mint \
+  -H "Content-Type: application/json" \
+  -d '{"sub":"admin","email":"admin@example.com","name":"Admin User"}' \
+  | jq -r .assertion)
+```
+
+Call Archestra's MCP Gateway with the ID-JAG assertion:
 
 ```http
 POST /v1/mcp/:profileId
@@ -55,43 +86,25 @@ Archestra exchanges the assertion at the MCP server's protected-resource token
 endpoint and then calls `/mcp` with `Authorization: Bearer
 <mcp-server-access-token>`.
 
-## Manual Flow
-
 ```sh
-npm install
-npm run build
-npm start
-```
-
-Mint a demo ID-JAG:
-
-```sh
-ASSERTION=$(curl -s http://127.0.0.1:3458/demo-idp/mint \
-  -H "Content-Type: application/json" \
-  -d '{"sub":"admin","email":"admin@example.com","name":"Admin User"}' \
-  | jq -r .assertion)
-```
-
-Exchange it for an MCP access token:
-
-```sh
-ACCESS_TOKEN=$(curl -s http://127.0.0.1:3458/token \
-  -u id-jag-resource-client:id-jag-resource-secret \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer" \
-  --data-urlencode "assertion=$ASSERTION" \
-  | jq -r .access_token)
-```
-
-Call the MCP server:
-
-```sh
-curl -s http://127.0.0.1:3458/mcp \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
+curl -s http://localhost:9000/v1/mcp/<profile-id> \
+  -H "Authorization: Bearer $ASSERTION" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"whoami","arguments":{}}}' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"<server-name>__whoami","arguments":{}}}' \
   | jq .
+```
+
+The tool response shows the upstream MCP server received a minted
+`mcp-server-at-*` bearer token, not the original ID-JAG assertion.
+
+## Run Tests
+
+The local tests verify the token endpoint and protected MCP server behavior:
+
+```sh
+chmod +x test.sh
+./test.sh
 ```
 
 ## Production Notes
