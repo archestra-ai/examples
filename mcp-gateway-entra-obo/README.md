@@ -14,28 +14,19 @@ and a demo upstream MCP endpoint so you can see the exact token handoff.
 
 ## Architecture
 
-```text
-Client / MCP host
-  │
-  │ Authorization: Bearer <token for gateway API>
-  ▼
-Demo gateway /gateway/mcp
-  │
-  │ POST /oauth2/v2.0/token
-  │ grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer
-  │ requested_token_use=on_behalf_of
-  │ assertion=<token for gateway API>
-  │ scope=<downstream MCP API scope>
-  ▼
-Microsoft Entra ID
-  │
-  │ access_token for downstream MCP API
-  ▼
-Upstream MCP /upstream/mcp
-  │
-  │ validates JWT issuer + audience via Entra JWKS
-  ▼
-MCP tool result
+```mermaid
+sequenceDiagram
+  participant Client as Client / MCP host
+  participant Gateway as Demo gateway<br/>/gateway/mcp
+  participant Entra as Microsoft Entra ID
+  participant MCP as Upstream MCP<br/>/upstream/mcp
+
+  Client->>Gateway: Authorization: Bearer token for gateway API
+  Gateway->>Entra: POST /oauth2/v2.0/token<br/>grant_type=jwt-bearer<br/>requested_token_use=on_behalf_of<br/>assertion=token for gateway API<br/>scope=downstream MCP API scope
+  Entra-->>Gateway: access_token for downstream MCP API
+  Gateway->>MCP: Authorization: Bearer downstream MCP access token
+  MCP->>MCP: Validate issuer, audience, expiry, scopes / roles
+  MCP-->>Client: MCP tool result
 ```
 
 ## Run Locally
@@ -156,7 +147,7 @@ In Archestra, the platform plays the gateway role:
 
 1. Configure an Entra identity provider.
 2. Configure enterprise-managed credentials with:
-   - exchange strategy: RFC 8693 / token exchange
+   - exchange strategy: Entra OBO
    - token endpoint: `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`
    - client ID / client secret: the gateway confidential client
    - subject token type: access token

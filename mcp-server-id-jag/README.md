@@ -15,20 +15,17 @@ endpoint receives a server-specific access token minted from that assertion.
 
 ## Architecture
 
-```text
-Gateway / agent host
-  │
-  │ ID-JAG assertion
-  ▼
-MCP server token endpoint /token
-  │
-  │ validates issuer, audience, client, resource, scope
-  ▼
-MCP-server access token
-  │
-  │ Authorization: Bearer <mcp-server-access-token>
-  ▼
-MCP endpoint /mcp
+```mermaid
+sequenceDiagram
+  participant Gateway as Gateway / agent host
+  participant Token as MCP server token endpoint<br/>/token
+  participant MCP as MCP endpoint<br/>/mcp
+
+  Gateway->>Token: ID-JAG assertion
+  Token->>Token: Validate issuer, audience, client, resource, scope
+  Token-->>Gateway: MCP-server access token
+  Gateway->>MCP: Authorization: Bearer MCP-server access token
+  MCP-->>Gateway: MCP tool result
 ```
 
 ## Run Locally
