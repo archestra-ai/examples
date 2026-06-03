@@ -14,6 +14,17 @@ The important distinction is that the MCP server does **not** accept the origina
 ID-JAG as its bearer token. The ID-JAG is an assertion used at `/token`; the MCP
 endpoint receives a server-specific access token minted from that assertion.
 
+## IdP Support Matrix
+
+As of this writing (June 2026), ID-JAG-capable issuer support is emerging:
+
+| IdP / issuer | ID-JAG support status | Notes |
+| --- | --- | --- |
+| Okta Cross App Access (XAA) | Supported behind Okta feature flag | Okta's Integration Network lists Archestra.AI with OIDC and Cross App Access. Enable XAA for the org/app before using it as the issuer. See the [Okta OIN Cross App Access listing](https://www.okta.com/integrations/?filters=okta%3Aoin%2Ffunctionalities%2Fcross-app-access). |
+| Keycloak | In upstream PR / feature work | Keycloak PR [#46048](https://github.com/keycloak/keycloak/pull/46048#issuecomment-4145158204) adds ID-JAG receiver support with the `IDENTITY_ASSERTION_JWT_VALIDATOR` feature. Archestra's e2e setup tracks a PR build under [`platform/helm/e2e-tests/keycloak-pr46048`](https://github.com/archestra-ai/archestra/tree/main/platform/helm/e2e-tests/keycloak-pr46048). |
+| Microsoft Entra ID | Not an ID-JAG issuer | Entra access tokens are regular JWT bearer tokens, not `typ: oauth-id-jag+jwt` assertions. Use the Entra OBO example for Entra access-token exchange. |
+| Local issuer in this example | Development only | The bundled `/demo-idp/mint` endpoint exists so the Archestra flow can be run locally without provisioning an external ID-JAG issuer. |
+
 ## Architecture
 
 ```mermaid
@@ -39,7 +50,7 @@ npm run build
 npm start
 ```
 
-Create an Archestra identity provider that uses:
+Create an Archestra identity provider for the local ID-JAG issuer:
 
 | Field | Value |
 | --- | --- |
@@ -66,7 +77,7 @@ Configure the MCP server to use enterprise-managed ID-JAG credentials with:
 | Token injection mode | Authorization Bearer |
 
 Assign the discovered `whoami` tool to an MCP Gateway profile with
-enterprise-managed credential resolution. Then mint a demo ID-JAG:
+enterprise-managed credential resolution. Then mint an ID-JAG assertion:
 
 ```sh
 ASSERTION=$(curl -s http://127.0.0.1:3458/demo-idp/mint \
@@ -109,8 +120,8 @@ chmod +x test.sh
 
 ## Production Notes
 
-In production, replace the demo identity provider with your enterprise identity
-provider and enforce the same checks this example performs:
+In production, replace the local ID-JAG issuer with your enterprise issuer and
+enforce the same checks this example performs:
 
 - assertion issuer and signature
 - token endpoint client authentication
