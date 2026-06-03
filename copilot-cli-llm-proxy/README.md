@@ -62,20 +62,18 @@ ARCHESTRA_PROVIDER=azure ARCHESTRA_MODEL=gpt-4.1 npm run setup
 ```sh
 source .env.copilot
 
-copilot -p "Reply with exactly: archestra-copilot-cli-ok" \
-  --silent \
-  --stream off \
-  --no-color \
-  --no-auto-update \
-  --disable-builtin-mcps \
-  --available-tools=none
+copilot -p "Reply with exactly: archestra-copilot-cli-ok"
 ```
 
-Expected output:
+Expected output includes:
 
 ```text
 archestra-copilot-cli-ok
 ```
+
+Depending on your GitHub Copilot organization policy, Copilot may print a
+warning about MCP servers before the model response. That warning does not
+affect the LLM Proxy path.
 
 For an interactive coding session:
 
@@ -88,8 +86,11 @@ copilot
 
 - GitHub authentication is not required when Copilot CLI runs with a custom
   provider.
+- `COPILOT_PROVIDER_TYPE` is set to `openai` because Copilot speaks the
+  OpenAI-compatible protocol. `COPILOT_PROVIDER_BASE_URL` still uses the
+  selected Archestra provider path, for example `/v1/azure/<llm-proxy-id>` for
+  an Azure-mapped virtual key.
 - The virtual key value is written once to `.env.copilot`. Treat it like a
   secret.
 - Delete or rotate the virtual key in Archestra after the demo if you no longer
   need it.
-
