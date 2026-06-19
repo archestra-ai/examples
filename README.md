@@ -16,6 +16,10 @@ Example applications demonstrating how to integrate AI agents with [Archestra Pl
 - **[mcp-server-id-jag](./mcp-server-id-jag)** - MCP server that exchanges an ID-JAG assertion for a server-specific MCP access token
 - **[dummy_email_mcp_server](./dummy_email_mcp_server)** - Simple MCP server for testing email tool scenarios
 
+## Test fixtures
+
+- **[test-fixtures](./test-fixtures)** - Internal MCP server fixtures used by the Archestra Platform end-to-end test suite (not tutorial examples)
+
 ## Documentation
 
 For detailed setup instructions, see the [Archestra documentation](https://www.archestra.ai/docs).
